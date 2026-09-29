@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fator de Queda e ZLQ | Projeto Serra Sul S11D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: entradas à esquerda, resultado à direita, desenho em escala e base normativa abaixo. */
+:root {
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-2: #f7f9fa;
+  --ink: #24313a;
+  --muted: #65727b;
+  --line: #dce3e6;
+  --accent: #f47b35;
+  --accent-ink: #ffffff;
+  --accent-text: #0b7f78;
+  --steel: #0b7f78;
+  --ok: #1d7a44;
+  --ok-bg: #e2f3e9;
+  --warn: #93630a;
+  --warn-bg: #fbf0d6;
+  --crit: #b3261e;
+  --crit-bg: #fbe3e1;
+  --seg-h: #e4570c;
+  --seg-s: #2a5b86;
+  --seg-e: #7a9bb8;
+  --seg-m: #3d9a63;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 20px 40px;
+  padding-inline: 16px;
+}
+.wrap { max-width: 1040px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: 0.005em; }
+h1 { font-size: 30px; line-height: 1.1; }
+h2 { font-size: 19px; }
+h3 { font-size: 16px; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; margin-top: 6px; }
+.eyebrow { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 6px; }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel > header { display: flex; flex-direction: column; gap: 2px; }
+.sub { color: var(--muted); font-size: 13px; }
+
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+legend { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 0; margin-bottom: 8px; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 420px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 13px; font-weight: 500; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.inp { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); min-width: 0; }
+.inp:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inp input, .inp select { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font-family: var(--font-data); font-size: 15px; padding: 8px 10px; }
+.inp select { font-family: var(--font-body); }
+.inp input:focus, .inp select:focus { outline: none; }
+.inp .unit { font-family: var(--font-data); font-size: 12px; color: var(--muted); padding: 0 10px; display: flex; align-items: center; border-left: 1px solid var(--line); }
+
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font-family: var(--font-body); font-size: 13px; font-weight: 500; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 4px; padding: 7px 11px; cursor: pointer; }
+button:hover { border-color: var(--steel); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.ff-block { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+.ff-num { font-family: var(--font-display); font-weight: 700; font-size: 64px; line-height: 0.9; font-variant-numeric: tabular-nums; }
+.ff-meta { display: flex; flex-direction: column; gap: 6px; padding-bottom: 4px; min-width: 0; }
+.ff-label { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; width: fit-content; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.crit { background: var(--crit-bg); color: var(--crit); }
+
+.metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.metric { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.metric .k { font-size: 12px; color: var(--muted); }
+.metric .v { font-family: var(--font-display); font-weight: 600; font-size: 26px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.metric .v small { font-family: var(--font-data); font-weight: 400; font-size: 12px; color: var(--muted); margin-left: 4px; }
+.metric .s { font-family: var(--font-data); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.bar { position: relative; height: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 2px; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--steel); }
+.bar .fill.crit { background: var(--crit); }
+.bar .lim { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); }
+.bar-cap { display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.checks li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; }
+.tag { flex: none; font-family: var(--font-data); font-size: 11px; font-weight: 500; width: 46px; text-align: center; border-radius: 3px; padding: 1px 0; }
+.tag.ok { background: var(--ok-bg); color: var(--ok); }
+.tag.warn { background: var(--warn-bg); color: var(--warn); }
+.tag.crit { background: var(--crit-bg); color: var(--crit); }
+.notes { display: flex; flex-direction: column; gap: 8px; }
+.note { font-size: 13px; padding: 8px 10px; border-left: 3px solid var(--line); background: var(--surface-2); }
+.note.crit { border-left-color: var(--crit); }
+.note.warn { border-left-color: var(--warn); }
+
+.fig { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (min-width: 700px) { .fig { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); } }
+.fig svg { width: 100%; max-width: 320px; height: auto; display: block; margin-inline: auto; }
+.svg-t { font-family: var(--font-data); font-size: 10px; fill: var(--muted); }
+.legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.legend li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 14px; }
+.legend .sw { width: 14px; height: 14px; border-radius: 2px; }
+.legend .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.legend li.total { border-top: 1px solid var(--line); padding-top: 8px; font-weight: 600; }
+
+.defs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 860px) { .defs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.def { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.def ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.formula { font-family: var(--font-data); font-size: 13px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; overflow-x: auto; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+td.n { font-family: var(--font-data); white-space: nowrap; }
+.disc { font-size: 12px; color: var(--muted); }
+.copy-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.copy-row .msg { font-size: 12px; color: var(--muted); }
+textarea.fallback { width: 100%; min-height: 120px; font-family: var(--font-data); font-size: 12px; background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
+@media (prefers-reduced-motion: no-preference) { .bar .fill { transition: width 0.2s ease; } }
+
+/* Identidade visual do projeto — sem alteração da lógica de cálculo */
+body{background:linear-gradient(180deg,#fff 0,#f4f7f8 280px);}
+.wrap{max-width:1180px;gap:20px;}
+.project-header{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 8px 28px rgba(20,45,55,.07);}
+.brand-strip{height:6px;background:linear-gradient(90deg,#0b7f78 0 55%,#f4b41a 55% 72%,#f47b35 72% 100%);}
+.project-head-inner{display:grid;grid-template-columns:160px 1fr 150px;gap:24px;align-items:center;padding:22px 26px;}
+.brand-logo{height:82px;width:100%;object-fit:contain;}
+.project-copy{text-align:center;}
+.project-kicker{font-family:var(--font-data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#0b7f78;font-weight:600;}
+.project-title{font-size:31px;margin-top:3px;color:#24313a;}
+.project-program{font-size:15px;color:#65727b;margin-top:5px;font-weight:500;}
+.project-meta{display:flex;justify-content:center;gap:8px 22px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:#65727b;}
+.project-meta strong{color:#24313a;}
+.tool-header{padding:4px 4px 0;}
+.tool-header h1{font-size:27px;}
+.panel{border-radius:12px;box-shadow:0 3px 14px rgba(25,50,60,.045);}
+.panel>header{border-bottom:1px solid #edf1f2;padding-bottom:11px;}
+.inp{border-radius:7px;background:#fbfcfc;}
+button{border-radius:7px;} button.primary{background:#0b7f78;border-color:#0b7f78;}
+.metric{border-top-color:#0b7f78;}
+.ff-num{color:#0b7f78;}
+@media(max-width:700px){.project-head-inner{grid-template-columns:82px 1fr 82px;gap:10px;padding:16px 12px}.brand-logo{height:54px}.project-title{font-size:22px}.project-program{font-size:13px}.project-meta{font-size:11px}.tool-header h1{font-size:25px}}
+@media(max-width:480px){.project-head-inner{grid-template-columns:1fr 1fr}.project-copy{grid-column:1/-1;grid-row:2}.brand-logo{height:48px}.project-head-inner .brand-logo:last-child{justify-self:end}}
+</style>
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="project-header">
+    <div class="brand-strip"></div>
+    <div class="project-head-inner">
+      <img class="brand-logo" src="enesa-logo.jpeg" alt="Enesa Engenharia">
+      <div class="project-copy">
+        <div class="project-kicker">Projeto Serra Sul S11D</div>
+        <h1 class="project-title">Programa 240 MTPA - Capacitação S11D 120 MTPA</h1>
+        <div class="project-program">Ferramenta de apoio para trabalho em altura</div>
+        <div class="project-meta"><span><strong>Executora:</strong> Enesa Engenharia</span><span><strong>Contratante:</strong> Vale</span></div>
+      </div>
+      <img class="brand-logo" src="vale-logo.jpeg" alt="Vale">
+    </div>
+  </header>
+  <header class="tool-header">
+    <div class="eyebrow">Trabalho em altura · retenção de queda</div>
+    <h1>Fator de Queda e ZLQ</h1>
+    <p class="lede">Lance os dados do sistema e do local. A página calcula o fator de queda, a zona livre de queda requerida e a força de impacto no trabalhador, com o desenho em escala.</p>
+  </header>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="h-in">
+      <header>
+        <h2 id="h-in">Entradas</h2>
+        <p class="sub">Valores iniciais são exemplos. Troque pelos dados do seu equipamento e do posto de trabalho.</p>
+      </header>
+
+      <div class="presets" role="group" aria-label="Exemplos de posição da ancoragem">
+        <button type="button" data-preset="2.0">Ancoragem acima do D-ring</button>
+        <button type="button" data-preset="1.5">Na altura do D-ring</button>
+        <button type="button" data-preset="0">Ancoragem nos pés</button>
+      </div>
+
+      <fieldset>
+        <legend>Sistema de retenção</legend>
+        <div class="field">
+          <label for="type">Elemento de ligação</label>
+          <div class="inp">
+            <select id="type">
+              <option value="abs">Talabarte com absorvedor de energia</option>
+              <option value="sem">Talabarte sem absorvedor (fita ou corda)</option>
+              <option value="srl">Trava-quedas retrátil</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="L" id="L-label">Comprimento do talabarte</label>
+            <div class="inp"><input id="L" type="number" inputmode="decimal" step="0.05" min="0.1" value="1.5"><span class="unit">m</span></div>
+            <span class="hint" id="L-hint">Talabarte + conectores, sem o absorvedor aberto.</span>
+          </div>
+          <div class="field" id="f-s">
+            <label for="s" id="s-label">Abertura do absorvedor</label>
+            <div class="inp"><input id="s" type="number" inputmode="decimal" step="0.05" min="0.05" value="1.75"><span class="unit">m</span></div>
+            <span class="hint" id="s-hint">Extensão total após acionado (dado do fabricante).</span>
+          </div>
+          <div class="field" id="f-eps" hidden>
+            <label for="eps">Alongamento sob 6 kN</label>
+            <div class="inp"><input id="eps" type="number" inputmode="decimal" step="1" min="1" value="15"><span class="unit">%</span></div>
+            <span class="hint">Dado do fabricante. Define a rigidez do talabarte.</span>
+          </div>
+          <div class="field" id="f-lock" hidden>
+            <label for="lock">Distância até travar</label>
+            <div class="inp"><input id="lock" type="number" inputmode="decimal" step="0.05" min="0" value="0.3"><span class="unit">m</span></div>
+            <span class="hint">Queda livre antes do freio atuar.</span>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Geometria</legend>
+        <div class="row2">
+          <div class="field">
+            <label for="anchor">Altura da ancoragem sobre os pés</label>
+            <div class="inp"><input id="anchor" type="number" inputmode="decimal" step="0.1" value="2.0"><span class="unit">m</span></div>
+            <span class="hint">Negativo se a ancoragem está abaixo dos pés.</span>
+          </div>
+          <div class="field">
+            <label for="dring">Altura do D-ring dorsal sobre os pés</label>
+            <div class="inp"><input id="dring" type="number" inputmode="decimal" step="0.05" min="0.5" value="1.5"><span class="unit">m</span></div>
+            <span class="hint">Usual: cerca de 1,5 m.</span>
+          </div>
+          <div class="field">
+            <label for="stretch">Alongamento do cinto e deslocamento do D-ring</label>
+            <div class="inp"><input id="stretch" type="number" inputmode="decimal" step="0.05" min="0" value="0.3"><span class="unit">m</span></div>
+            <span class="hint">Consulte o manual do cinto.</span>
+          </div>
+          <div class="field">
+            <label for="margin">Margem de segurança</label>
+            <div class="inp"><input id="margin" type="number" inputmode="decimal" step="0.1" min="0" value="1.0"><span class="unit">m</span></div>
+            <span class="hint">Distância mínima do corpo ao obstáculo.</span>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Trabalhador e local</legend>
+        <div class="row2">
+          <div class="field">
+            <label for="mass">Massa com EPI e ferramentas</label>
+            <div class="inp"><input id="mass" type="number" inputmode="decimal" step="1" min="30" value="100"><span class="unit">kg</span></div>
+            <span class="hint">Ensaios normativos usam 100 kg.</span>
+          </div>
+          <div class="field">
+            <label for="zlq">ZLQ disponível (ancoragem até o obstáculo)</label>
+            <div class="inp"><input id="zlq" type="number" inputmode="decimal" step="0.1" min="0" value="8.0"><span class="unit">m</span></div>
+            <span class="hint">Piso, laje ou estrutura mais próxima abaixo.</span>
+          </div>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="panel" aria-labelledby="h-out" aria-live="polite">
+      <header>
+        <h2 id="h-out">Resultado</h2>
+        <p class="sub">Queda vertical, sem efeito pêndulo.</p>
+      </header>
+
+      <div class="ff-block">
+        <div>
+          <div class="ff-label">Fator de queda</div>
+          <div class="ff-num" id="r-ff">0,00</div>
+        </div>
+        <div class="ff-meta">
+          <span class="pill ok" id="r-ff-pill">Baixo</span>
+          <span class="sub" id="r-ff-txt"></span>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><div class="k">Queda livre (H)</div><div class="v"><span id="r-h">0,00</span><small>m</small></div><div class="s" id="r-h-s"></div></div>
+        <div class="metric"><div class="k">Força de impacto</div><div class="v"><span id="r-f">0,00</span><small>kN</small></div><div class="s" id="r-f-s"></div></div>
+        <div class="metric"><div class="k">ZLQ requerida</div><div class="v"><span id="r-z">0,00</span><small>m</small></div><div class="s" id="r-z-s"></div></div>
+        <div class="metric"><div class="k">Energia dissipada</div><div class="v"><span id="r-e">0</span><small>J</small></div><div class="s" id="r-e-s"></div></div>
+      </div>
+
+      <div>
+        <div class="bar" aria-hidden="true"><div class="fill" id="bar-f"></div><div class="lim" id="bar-lim"></div></div>
+        <div class="bar-cap"><span>0 kN</span><span id="bar-lim-t">limite 6 kN</span><span id="bar-max">8 kN</span></div>
+      </div>
+
+      <ul class="checks" id="checks"></ul>
+      <div class="notes" id="notes"></div>
+
+      <div class="copy-row">
+        <button type="button" class="primary" id="copy">Copiar resumo</button>
+        <span class="msg" id="copy-msg"></span>
+      </div>
+      <div id="fallback-wrap" hidden><textarea class="fallback" id="fallback" readonly aria-label="Resumo do cálculo"></textarea></div>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="h-fig">
+    <header>
+      <h2 id="h-fig">Desenho em escala</h2>
+      <p class="sub">Posição inicial (linha cheia) e posição após a retenção (tracejada). As faixas à direita somam o espaço livre necessário abaixo dos pés.</p>
+    </header>
+    <div class="fig">
+      <svg id="svg" viewBox="0 0 300 440" role="img" aria-label="Desenho em escala do trabalhador, da ancoragem e do espaço livre de queda"></svg>
+      <ul class="legend" id="legend"></ul>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-def">
+    <header>
+      <h2 id="h-def">Definições e base normativa</h2>
+      <p class="sub">Resumo para consulta rápida. Confira sempre o texto vigente das normas.</p>
+    </header>
+    <div class="defs">
+      <div class="def">
+        <h3>Fator de queda (FQ)</h3>
+        <p>Razão entre a distância de queda livre e o comprimento do elemento de ligação que vai deter a queda. Indica a severidade: quanto maior o FQ, maior a força transmitida ao corpo.</p>
+        <div class="formula">FQ = H / L</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>FQ</th><th>Situação</th></tr></thead>
+            <tbody>
+              <tr><td class="n">menor que 1</td><td>Ancoragem acima do D-ring; o talabarte cai com folga menor que o seu comprimento.</td></tr>
+              <tr><td class="n">1</td><td>Ancoragem na altura do D-ring; a queda livre é igual ao talabarte.</td></tr>
+              <tr><td class="n">2</td><td>Ancoragem nos pés; é o máximo possível e o caso mais severo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="def">
+        <h3>Zona livre de queda (ZLQ)</h3>
+        <p>Espaço vertical entre a ancoragem e o obstáculo inferior mais próximo (piso, laje, estrutura). Se a ZLQ disponível for menor que a requerida, o trabalhador chega ao obstáculo antes de ser detido.</p>
+        <div class="formula">ZLQ = altura da ancoragem sobre os pés<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ H + abertura do absorvedor<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ alongamento do cinto + margem</div>
+        <p class="sub">Com a ancoragem na altura do D-ring, isto vira a soma usual: talabarte + absorvedor + distância D-ring–pés + margem.</p>
+      </div>
+
+      <div class="def">
+        <h3>Força de impacto</h3>
+        <p>A força máxima de retenção transmitida ao corpo deve ficar em até 6 kN, cerca de 600 kgf. Em ensaios, talabarte sem absorvedor em FQ 2 passou de 20 kN.</p>
+        <div class="formula">Absorvedor / trava-quedas:<br>F = m · g · (1 + H / s)<br><br>Talabarte sem absorvedor (elástico):<br>F = m·g + √( (m·g)² + 2·m·g·H·k )</div>
+        <p class="sub">m = massa, g = 9,81 m/s², s = distância de frenagem, k = rigidez (N/m). São estimativas teóricas; para projeto use os valores de ensaio do fabricante.</p>
+      </div>
+
+      <div class="def">
+        <h3>NR-18 e NR-35</h3>
+        <ul>
+          <li>NR-18, item 18.9: proteção contra queda de altura na construção, com preferência pela proteção coletiva (guarda-corpo, plataformas com proteção periférica).</li>
+          <li>A Portaria MTE 836/2026 alterou na NR-18 os itens de proteção periférica e de andaimes multidirecionais, com vigência desde 29/06/2026.</li>
+          <li>O conceito de fator de queda, o SPIQ e a ZLQ vêm da NR-35 e das normas ABNT de EPI contra queda, aplicadas também nos serviços em altura da construção.</li>
+          <li>NR-35, item 35.6.9.1.1: desde 02/01/2026, talabarte usado na retenção de queda deve ter absorvedor de energia (Portaria MTE 1.680/2025).</li>
+        </ul>
+        <p class="disc">Ferramenta de apoio ao cálculo. Não substitui a análise de risco, o projeto do sistema de ancoragem por profissional habilitado nem os dados de ensaio do fabricante.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var G = 9.81;
+  var $ = function (id) { return document.getElementById(id); };
+  var ids = ['type', 'L', 's', 'eps', 'lock', 'anchor', 'dring', 'stretch', 'margin', 'mass', 'zlq'];
+  var typeDefaults = {
+    abs: { L: 1.5, s: 1.75 },
+    sem: { L: 1.5, s: 1.75 },
+    srl: { L: 3.0, s: 0.6 }
+  };
+
+  function num(id, fallback) {
+    var x = parseFloat($(id).value);
+    return isFinite(x) ? x : fallback;
+  }
+  function fmt(n, d) {
+    if (d === undefined) d = 2;
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+
+  function read() {
+    return {
+      type: $('type').value,
+      L: Math.max(0.1, num('L', 1.5)),
+      s: Math.max(0.05, num('s', 1.75)),
+      eps: Math.max(1, num('eps', 15)) / 100,
+      lock: Math.max(0, num('lock', 0.3)),
+      anchor: num('anchor', 0),
+      dring: Math.max(0.5, num('dring', 1.5)),
+      stretch: Math.max(0, num('stretch', 0)),
+      margin: Math.max(0, num('margin', 0)),
+      mass: Math.max(30, num('mass', 100)),
+      zlq: Math.max(0, num('zlq', 0))
+    };
+  }
+
+  function calc(v) {
+    var r = { flags: [] };
+    var a = v.anchor - v.dring; // posição da ancoragem em relação ao D-ring (positivo = acima)
+    var H;
+    if (v.type === 'srl') {
+      H = Math.max(0, -a) + v.lock;
+    } else {
+      H = v.L - a;
+      if (H < 0) { H = 0; r.flags.push('reach'); }
+      if (H > 2 * v.L) { H = 2 * v.L; r.flags.push('geom'); }
+    }
+    r.H = H;
+    r.FF = H / v.L;
+    var mg = v.mass * G;
+    r.mg = mg;
+    var dec, F;
+    if (v.type === 'sem') {
+      var k = 6000 / (v.eps * v.L);
+      F = H > 0 ? mg + Math.sqrt(mg * mg + 2 * mg * H * k) : mg;
+      dec = F / k;
+      r.k = k;
+    } else {
+      F = mg * (1 + H / v.s);
+      dec = v.s;
+    }
+    r.F = F;
+    r.dec = dec;
+    r.energy = mg * (H + dec);
+    r.belowFeet = H + dec + v.stretch + v.margin;
+    r.zlqReq = r.belowFeet + v.anchor;
+    r.folga = v.zlq - r.zlqReq;
+    r.drop = H + dec + v.stretch;
+    return r;
+  }
+
+  function ffStatus(ff) {
+    if (ff < 0.005) return { c: 'ok', t: 'Sem queda livre', d: 'Talabarte esticado, sem folga.' };
+    if (ff <= 1.0001) return { c: 'ok', t: 'Baixo', d: 'Ancoragem acima do D-ring ou na altura dele.' };
+    if (ff < 1.995) return { c: 'warn', t: 'Elevado', d: 'A ancoragem está abaixo do D-ring. Suba o ponto de ancoragem se possível.' };
+    return { c: 'crit', t: 'Máximo (2)', d: 'Ancoragem nos pés. Evite: a força de impacto é a mais alta possível.' };
+  }
+
+  function addCheck(list, cls, tag, text) {
+    var li = document.createElement('li');
+    var t = document.createElement('span');
+    t.className = 'tag ' + cls;
+    t.textContent = tag;
+    var s = document.createElement('span');
+    s.textContent = text;
+    li.appendChild(t);
+    li.appendChild(s);
+    list.appendChild(li);
+  }
+  function addNote(box, cls, text) {
+    var d = document.createElement('div');
+    d.className = 'note ' + cls;
+    d.textContent = text;
+    box.appendChild(d);
+  }
+
+  function svgEl(name, attrs, text) {
+    var e = document.createElementNS('http://www.w3.org/2000/svg', name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function drawFigure(v, r) {
+    var svg = $('svg');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var W = 300, Ht = 440, padT = 22, padB = 22;
+    var head = v.dring + 0.25;
+    var top = Math.max(v.anchor, head) + 0.3;
+    var obstacle = v.anchor - v.zlq;
+    var bottom = Math.min(obstacle, -r.belowFeet) - 0.3;
+    var sc = (Ht - padT - padB) / (top - bottom);
+    var Y = function (m) { return padT + (top - m) * sc; };
+    var X = 100;
+
+    var defs = svgEl('defs', {});
+    var pat = svgEl('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' });
+    pat.appendChild(svgEl('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: 'var(--muted)', 'stroke-width': 2, opacity: 0.5 }));
+    defs.appendChild(pat);
+    svg.appendChild(defs);
+
+    // obstáculo
+    var yo = Y(obstacle);
+    svg.appendChild(svgEl('rect', { x: 0, y: yo, width: W, height: Math.max(0, Ht - yo), fill: 'url(#hatch)' }));
+    svg.appendChild(svgEl('line', { x1: 0, y1: yo, x2: W, y2: yo, stroke: 'var(--ink)', 'stroke-width': 2 }));
+    svg.appendChild(svgEl('text', { x: 6, y: yo - 5, class: 'svg-t' }, 'obstáculo'));
+
+    // nível dos pés
+    svg.appendChild(svgEl('line', { x1: 8, y1: Y(0), x2: 196, y2: Y(0), stroke: 'var(--muted)', 'stroke-width': 1, 'stroke-dasharray': '3 4' }));
+    svg.appendChild(svgEl('text', { x: 6, y: Y(0) - 4, class: 'svg-t' }, 'pés'));
+
+    function person(dy, ghost) {
+      var g = svgEl('g', ghost ? { opacity: 0.55, 'stroke-dasharray': '4 3' } : {});
+      var yf = Y(-dy), yd = Y(v.dring - dy), yh = Y(head - dy);
+      var rad = Math.max(4, 0.13 * sc);
+      g.appendChild(svgEl('line', { x1: X, y1: yf, x2: X, y2: yd, stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      g.appendChild(svgEl('line', { x1: X - 9, y1: yf, x2: X + 9, y2: yf, stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      g.appendChild(svgEl('circle', { cx: X, cy: yh, r: rad, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5 }));
+      g.appendChild(svgEl('circle', { cx: X + 4, cy: yd, r: 3.5, fill: 'var(--accent)', stroke: 'none' }));
+      return g;
+    }
+
+    // ancoragem e talabarte
+    var ya = Y(v.anchor);
+    var yd0 = Y(v.dring);
+    var path;
+    if (v.type === 'srl' || r.H < 0.005) {
+      path = 'M' + X + ',' + ya + ' L' + (X + 4) + ',' + yd0;
+    } else {
+      var midY = (ya + yd0) / 2;
+      path = 'M' + X + ',' + ya + ' Q' + (X - 46) + ',' + midY + ' ' + (X + 4) + ',' + yd0;
+    }
+    svg.appendChild(svgEl('path', { d: path, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2 }));
+
+    svg.appendChild(person(r.drop, true));
+    svg.appendChild(person(0, false));
+
+    svg.appendChild(svgEl('rect', { x: X - 7, y: ya - 7, width: 14, height: 14, fill: 'var(--steel)' }));
+    svg.appendChild(svgEl('text', { x: X + 12, y: ya + 4, class: 'svg-t' }, 'ancoragem'));
+
+    // faixas do espaço livre abaixo dos pés
+    var bx = 214, bw = 16;
+    var segs = [
+      { d: r.H, c: 'var(--seg-h)' },
+      { d: r.dec, c: 'var(--seg-s)' },
+      { d: v.stretch, c: 'var(--seg-e)' },
+      { d: v.margin, c: 'var(--seg-m)' }
+    ];
+    var cur = 0;
+    segs.forEach(function (sg) {
+      if (sg.d <= 0) return;
+      var y1 = Y(-cur), y2 = Y(-(cur + sg.d));
+      svg.appendChild(svgEl('rect', { x: bx, y: y1, width: bw, height: Math.max(0.5, y2 - y1), fill: sg.c }));
+      cur += sg.d;
+    });
+    svg.appendChild(svgEl('text', { x: bx - 2, y: Y(0) - 6, class: 'svg-t' }, 'abaixo dos pés'));
+
+    // legenda
+    var lg = $('legend');
+    lg.innerHTML = '';
+    var decName = v.type === 'sem' ? 'Alongamento do talabarte' : (v.type === 'srl' ? 'Frenagem do trava-quedas' : 'Abertura do absorvedor');
+    var items = [
+      ['var(--seg-h)', 'Queda livre (H)', r.H],
+      ['var(--seg-s)', decName, r.dec],
+      ['var(--seg-e)', 'Alongamento do cinto', v.stretch],
+      ['var(--seg-m)', 'Margem de segurança', v.margin]
+    ];
+    items.forEach(function (it) {
+      var li = document.createElement('li');
+      var sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = it[0];
+      var nm = document.createElement('span'); nm.textContent = it[1];
+      var nu = document.createElement('span'); nu.className = 'num'; nu.textContent = fmt(it[2]) + ' m';
+      li.appendChild(sw); li.appendChild(nm); li.appendChild(nu);
+      lg.appendChild(li);
+    });
+    var t1 = document.createElement('li'); t1.className = 'total';
+    t1.innerHTML = '<span></span><span>Espaço livre necessário abaixo dos pés</span><span class="num">' + fmt(r.belowFeet) + ' m</span>';
+    lg.appendChild(t1);
+    var t2 = document.createElement('li');
+    t2.innerHTML = '<span></span><span>Altura da ancoragem sobre os pés</span><span class="num">' + fmt(v.anchor) + ' m</span>';
+    lg.appendChild(t2);
+    var t3 = document.createElement('li'); t3.className = 'total';
+    t3.innerHTML = '<span></span><span>ZLQ requerida (ancoragem até o obstáculo)</span><span class="num">' + fmt(r.zlqReq) + ' m</span>';
+    lg.appendChild(t3);
+  }
+
+  var lastSummary = '';
+
+  function render() {
+    var v = read();
+    var r = calc(v);
+    var st = ffStatus(r.FF);
+
+    $('r-ff').textContent = fmt(r.FF);
+    var pill = $('r-ff-pill');
+    pill.className = 'pill ' + st.c;
+    pill.textContent = st.t;
+    $('r-ff-txt').textContent = st.d;
+
+    $('r-h').textContent = fmt(r.H);
+    $('r-h-s').textContent = 'L = ' + fmt(v.L) + ' m';
+    var kN = r.F / 1000;
+    $('r-f').textContent = fmt(kN);
+    $('r-f-s').textContent = fmt(r.F / 9.80665, 0) + ' kgf · ' + fmt(r.F / r.mg, 1) + '× o peso';
+    $('r-z').textContent = fmt(r.zlqReq);
+    $('r-z-s').textContent = 'disponível ' + fmt(v.zlq) + ' m';
+    $('r-e').textContent = fmt(r.energy, 0);
+    $('r-e-s').textContent = 'parada em ' + fmt(r.dec) + ' m';
+
+    var maxK = Math.max(8, Math.ceil(kN + 1));
+    $('bar-f').style.width = Math.min(100, (kN / maxK) * 100) + '%';
+    $('bar-f').className = 'fill' + (kN > 6 ? ' crit' : '');
+    $('bar-lim').style.left = 'calc(' + (6 / maxK) * 100 + '% - 1px)';
+    $('bar-max').textContent = maxK + ' kN';
+
+    var checks = $('checks');
+    checks.innerHTML = '';
+    if (r.FF <= 1.0001) addCheck(checks, 'ok', 'OK', 'Fator de queda em até 1.');
+    else if (r.FF < 1.995) addCheck(checks, 'warn', 'ATENÇÃO', 'Fator de queda acima de 1.');
+    else addCheck(checks, 'crit', 'CRÍTICO', 'Fator de queda 2, o máximo.');
+    if (kN <= 6) addCheck(checks, 'ok', 'OK', 'Força de impacto em até 6 kN.');
+    else addCheck(checks, 'crit', 'CRÍTICO', 'Força de impacto acima de 6 kN.');
+    if (r.folga >= 0) addCheck(checks, 'ok', 'OK', 'ZLQ disponível cobre a requerida (folga de ' + fmt(r.folga) + ' m).');
+    else addCheck(checks, 'crit', 'CRÍTICO', 'ZLQ disponível é ' + fmt(-r.folga) + ' m menor que a requerida.');
+    if (v.type === 'sem') addCheck(checks, 'crit', 'CRÍTICO', 'Retenção de queda exige talabarte com absorvedor (NR-35, 35.6.9.1.1).');
+    else addCheck(checks, 'ok', 'OK', 'Elemento de ligação com dissipação de energia.');
+
+    var notes = $('notes');
+    notes.innerHTML = '';
+    if (r.flags.indexOf('reach') >= 0) addNote(notes, 'warn', 'A ancoragem está acima do alcance do talabarte. Considerado talabarte esticado, sem queda livre.');
+    if (r.flags.indexOf('geom') >= 0) addNote(notes, 'warn', 'Com essa geometria o trabalhador não alcança a ancoragem sem tensionar o talabarte. A queda livre foi limitada a 2 × L (FQ 2).');
+    if (v.type === 'abs' && v.s > 1.75) addNote(notes, 'warn', 'Abertura do absorvedor acima de 1,75 m, limite usual das normas de absorvedor. Confirme no certificado do equipamento.');
+    if (v.type === 'sem' && r.FF > 1) addNote(notes, 'crit', 'Talabarte sem absorvedor com FQ acima de 1 gera força muito alta. Use talabarte com absorvedor.');
+    if (v.type === 'srl') addNote(notes, 'note', 'Trava-quedas: informe a distância de travamento e de frenagem do certificado. Com a ancoragem acima do D-ring a queda livre fica no valor de travamento.');
+    if (r.FF > 1 && v.type !== 'sem') addNote(notes, 'warn', 'Com FQ acima de 1 a ZLQ requerida cresce. Subir a ancoragem reduz a queda livre e a força.');
+    addNote(notes, '', 'Cálculo para queda vertical. Ancoragem deslocada lateralmente causa pêndulo e exige análise à parte.');
+
+    drawFigure(v, r);
+
+    var typeName = $('type').options[$('type').selectedIndex].text;
+    lastSummary = [
+      'FATOR DE QUEDA E ZLQ',
+      'Elemento de ligação: ' + typeName,
+      'L = ' + fmt(v.L) + ' m | ancoragem sobre os pés = ' + fmt(v.anchor) + ' m | D-ring = ' + fmt(v.dring) + ' m',
+      'Massa = ' + fmt(v.mass, 0) + ' kg',
+      '',
+      'Queda livre H = ' + fmt(r.H) + ' m',
+      'Fator de queda = ' + fmt(r.FF) + ' (' + st.t + ')',
+      'Força de impacto = ' + fmt(kN) + ' kN (' + fmt(r.F / 9.80665, 0) + ' kgf)',
+      'ZLQ requerida = ' + fmt(r.zlqReq) + ' m | disponível = ' + fmt(v.zlq) + ' m | folga = ' + fmt(r.folga) + ' m',
+      'Espaço livre abaixo dos pés = ' + fmt(r.belowFeet) + ' m'
+    ].join('\n');
+  }
+
+  function applyType() {
+    var t = $('type').value;
+    var d = typeDefaults[t];
+    $('L').value = d.L;
+    $('s').value = d.s;
+    $('f-s').hidden = (t === 'sem');
+    $('f-eps').hidden = (t !== 'sem');
+    $('f-lock').hidden = (t !== 'srl');
+    if (t === 'srl') {
+      $('L-label').textContent = 'Comprimento do cabo estendido';
+      $('L-hint').textContent = 'Distância da ancoragem ao D-ring.';
+      $('s-label').textContent = 'Distância de frenagem';
+      $('s-hint').textContent = 'Deslocamento após o travamento (certificado).';
+    } else {
+      $('L-label').textContent = 'Comprimento do talabarte';
+      $('L-hint').textContent = 'Talabarte + conectores, sem o absorvedor aberto.';
+      $('s-label').textContent = 'Abertura do absorvedor';
+      $('s-hint').textContent = 'Extensão total após acionado (dado do fabricante).';
+    }
+    render();
+  }
+
+  ids.forEach(function (id) {
+    $(id).addEventListener('input', render);
+  });
+  $('type').addEventListener('change', applyType);
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (b) {
+    b.addEventListener('click', function () {
+      $('anchor').value = b.getAttribute('data-preset') === '1.5' ? $('dring').value : b.getAttribute('data-preset');
+      render();
+    });
+  });
+
+  $('copy').addEventListener('click', function () {
+    var msg = $('copy-msg');
+    var showFallback = function () {
+      $('fallback-wrap').hidden = false;
+      var ta = $('fallback');
+      ta.value = lastSummary;
+      ta.focus();
+      ta.select();
+      msg.textContent = 'Selecione e copie o texto abaixo.';
+    };
+    try {
+      navigator.clipboard.writeText(lastSummary).then(function () {
+        $('fallback-wrap').hidden = true;
+        msg.textContent = 'Resumo copiado.';
+      }, showFallback);
+    } catch (e) {
+      showFallback();
+    }
+  });
+
+  applyType();
+})();
+</script>
+
+</body>
+</html>
